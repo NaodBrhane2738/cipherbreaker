@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CipherBreaker — Cryptanalysis Suite</title>
+    <link rel="stylesheet" href="styles.css?v=2.0">
+</head>
+<body>
+
+    <div class="app-wrapper">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>Cipher<span>Breaker</span></h1>
+            <p>Automated Cryptanalysis Suite for Classical Ciphers</p>
+        </header>
+
+        <!-- Navigation Bar -->
+        <nav class="nav-bar">
+            <button class="nav-btn active" onclick="switchNav('auto-detect')">⚡ Smart Auto-Detect</button>
+            <button class="nav-btn" onclick="switchNav('caesar')">🔑 Caesar Cipher</button>
+            <button class="nav-btn" onclick="switchNav('affine')">📐 Affine Cipher</button>
+            <button class="nav-btn" onclick="switchNav('rot13-atbash')">🔄 ROT13 & Atbash</button>
+            <button class="nav-btn" onclick="switchNav('keyword')">🔤 Keyword Cipher</button>
+            <button class="nav-btn" onclick="switchNav('sandbox')">🛠️ Universal Sandbox</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- View 1: Smart Auto-Detect -->
+            <section id="view-auto-detect" class="view-panel active">
+                <div>
+                    <h2 class="panel-title">Automated Cipher Detection</h2>
+                    <p class="panel-sub">Concurrently evaluates input text against Caesar, Affine, ROT13, Atbash, and Keyword ciphers.</p>
+                </div>
+
+                <div class="card-box">
+                    <div class="card-title">
+                        <span>Ciphertext Input</span>
+                        <div class="presets-group">
+                            <span>Sample Inputs:</span>
+                            <button class="preset-chip" onclick="loadAutoPreset(1)">Caesar (KHOOR...)</button>
+                            <button class="preset-chip" onclick="loadAutoPreset(2)">Affine (DEBQSJF...)</button>
+                            <button class="preset-chip" onclick="loadAutoPreset(3)">Atbash (SVOOL...)</button>
+                            <button class="preset-chip" onclick="loadAutoPreset(4)">Keyword (EBIIL...)</button>
+                        </div>
+                    </div>
+                    <textarea id="auto-input" rows="4" placeholder="Paste ciphertext here to auto-detect cipher type and key..." oninput="runAutoDetect()"></textarea>
+                </div>
+
+                <!-- Best Match Banner -->
+                <div id="auto-top-box" class="best-card hidden">
+                    <span class="best-badge">BEST MATCH</span>
+                    <div class="best-title">
+                        Predicted Cipher: <strong id="auto-top-cipher">Caesar Cipher</strong> &mdash; 
+                        Key: <strong id="auto-top-key">Shift 3</strong> 
+                        (<span id="auto-top-conf">100%</span> confidence)
+                    </div>
+                    <div id="auto-top-text" class="best-text"></div>
+                    <div style="margin-top: 10px;">
+                        <button class="btn" onclick="copyAutoTop()">📋 Copy Plaintext</button>
+                    </div>
+                </div>
+
+                <div class="card-box">
+                    <div class="card-title">Solver Comparison Analysis</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">Rank</th>
+                                <th style="width: 150px;">Cipher Family</th>
+                                <th style="width: 180px;">Key Parameters</th>
+                                <th style="width: 90px;">Confidence</th>
+                                <th>Decrypted Plaintext</th>
+                                <th style="width: 70px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auto-results-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- View 2: Caesar Cipher -->
+            <section id="view-caesar" class="view-panel">
+                <div>
+                    <h2 class="panel-title">Caesar Cipher Studio</h2>
+                    <p class="panel-sub">Tests all 26 possible shift keys using Chi-Square letter frequency scoring.</p>
+                </div>
+
+                <div class="card-box">
+                    <div class="card-title">Input & Key Controls</div>
+                    <div class="controls-flex" style="margin-bottom: 12px;">
+                        <label for="caesar-shift">Manual Shift Key (0..25):</label>
+                        <input type="range" id="caesar-shift" min="0" max="25" value="3" oninput="document.getElementById('caesar-shift-val').textContent=this.value; runCaesar();">
+                        <strong id="caesar-shift-val" style="color: #4f46e5;">3</strong>
+                    </div>
+                    <textarea id="caesar-input" rows="4" placeholder="Enter Caesar ciphertext..." oninput="runCaesar()"></textarea>
+                </div>
+
+                <div class="card-box">
+                    <div class="card-title">Shift Candidates (All 26 Keys)</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">Shift Key</th>
+                                <th style="width: 90px;">Score</th>
+                                <th>Decrypted Plaintext</th>
+                                <th style="width: 70px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="caesar-results-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- View 3: Affine Cipher -->
+            <section id="view-affine" class="view-panel">
+                <div>
+                    <h2 class="panel-title">Affine Cipher Studio</h2>
+                    <p class="panel-sub">Evaluates E(x) = (ax + b) mod 26 across 624 key combinations in 0-based and 1-based modes.</p>
+                </div>
+
+                <div class="card-box">
+                    <div class="card-title">Affine Key Configuration</div>
+                    <div class="controls-flex" style="margin-bottom: 12px;">
+                        <label for="affine-a">Multiplier (a):</label>
+                        <select id="affine-a" onchange="runAffine()">
+                            <option value="1">1</option><option value="3">3</option><option value="5">5</option>
+                            <option value="7" selected>7</option><option value="9">9</option><option value="11">11</option>
+                            <option value="15">15</option><option value="17">17</option><option value="19">19</option>
+                            <option value="21">21</option><option value="23">23</option><option value="25">25</option>
+                        </select>
+
+                        <label for="affine-b">Shift (b):</label>
+                        <input type="range" id="affine-b" min="0" max="25" value="9" oninput="document.getElementById('affine-b-val').textContent=this.value; runAffine();">
+                        <strong id="affine-b-val" style="color: #4f46e5;">9</strong>
+
+                        <label for="affine-indexing">Indexing Mode:</label>
+                        <select id="affine-indexing" onchange="runAffine()">
+                            <option value="0">0-based (A=0)</option>
+                            <option value="1" selected>1-based (A=1)</option>
+                        </select>
+                    </div>
+                    <textarea id="affine-input" rows="4" placeholder="Enter Affine ciphertext..." oninput="runAffine()"></textarea>
+                </div>
+
+                <div class="card-box">
+                    <div class="card-title">Candidate Rankings (Top 40 Matches)</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 160px;">Key (a, b, mode)</th>
+                                <th style="width: 90px;">Score</th>
+                                <th>Decrypted Plaintext</th>
+                                <th style="width: 70px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="affine-results-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- View 4: ROT13 & Atbash -->
+            <section id="view-rot13-atbash" class="view-panel">
+                <div>
+                    <h2 class="panel-title">ROT13 & Atbash Solvers</h2>
+                    <p class="panel-sub">Self-inverse transformations for ROT13 (Shift 13) and Atbash (Alphabet reversal A&harr;Z).</p>
+                </div>
+
+                <div class="card-box">
+                    <textarea id="ra-input" rows="4" placeholder="Enter text for ROT13 or Atbash transformation..." oninput="runRotAtbash()"></textarea>
+                </div>
+
+                <div class="card-box">
+                    <div class="card-title">Transformed Outputs</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 150px;">Algorithm</th>
+                                <th>Output Text</th>
+                                <th style="width: 70px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ra-results-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- View 5: Keyword Cipher -->
+            <section id="view-keyword" class="view-panel">
+                <div>
+                    <h2 class="panel-title">Keyword Cipher Studio</h2>
+                    <p class="panel-sub">Generates a substitution alphabet from a secret keyword and decrypts input text.</p>
+                </div>
+
+                <div class="card-box">
+                    <div class="card-title">Keyword Settings</div>
+                    <div class="controls-flex" style="margin-bottom: 12px;">
+                        <label for="kw-word">Secret Keyword:</label>
+                        <input type="text" id="kw-word" value="KEYWORD" placeholder="Enter keyword..." oninput="runKeyword()">
+                    </div>
+                    <div class="alpha-box">
+                        <div class="alpha-row"><span class="label">Plain Alphabet:</span> ABCDEFGHIJKLMNOPQRSTUVWXYZ</div>
+                        <div class="alpha-row"><span class="label">Cipher Alphabet:</span> <span id="kw-cipher-seq" class="seq">KEYWORDABCFGHIJLMNPQSTUVXZ</span></div>
+                    </div>
+                    <textarea id="kw-input" rows="4" placeholder="Enter Keyword Cipher ciphertext..." oninput="runKeyword()" style="margin-top: 12px;"></textarea>
+                </div>
+
+                <div class="card-box">
+                    <div class="card-title">Decrypted Output</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 150px;">Keyword</th>
+                                <th style="width: 90px;">Score</th>
+                                <th>Decrypted Plaintext</th>
+                                <th style="width: 70px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kw-results-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- View 6: Sandbox -->
+            <section id="view-sandbox" class="view-panel">
+                <div>
+                    <h2 class="panel-title">Universal Cipher Sandbox</h2>
+                    <p class="panel-sub">Test custom encryption or decryption parameters across all 5 ciphers.</p>
+                </div>
+
+                <div class="card-box">
+                    <div class="controls-flex">
+                        <label for="sb-cipher">Cipher:</label>
+                        <select id="sb-cipher" onchange="updateSandboxUI()">
+                            <option value="caesar">Caesar</option>
+                            <option value="affine">Affine</option>
+                            <option value="rot13">ROT13</option>
+                            <option value="atbash">Atbash</option>
+                            <option value="keyword">Keyword Cipher</option>
+                        </select>
+
+                        <label for="sb-mode">Operation:</label>
+                        <select id="sb-mode" onchange="updateSandboxOutput()">
+                            <option value="encrypt">Encrypt</option>
+                            <option value="decrypt">Decrypt</option>
+                        </select>
+                    </div>
+
+                    <div id="sb-params" class="controls-flex" style="margin-top: 12px;"></div>
+                    <textarea id="sb-input" rows="4" placeholder="Type text here..." oninput="updateSandboxOutput()" style="margin-top: 12px;"></textarea>
+                    
+                    <label style="font-weight: 700; margin-top: 12px; display: block; color: #1e293b;">Result Output:</label>
+                    <textarea id="sb-output" rows="4" readonly placeholder="Output will appear here..."></textarea>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            CipherBreaker Cryptanalysis Suite
+        </footer>
+    </div>
+
+    <script src="script.js?v=2.0"></script>
+</body>
+</html>
